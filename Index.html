@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Material Preview Pro</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Import Map for Three.js Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+
+<body>
+
+    <!-- Top Bar -->
+    <header id="topbar">
+        <div class="topbar-left">
+            <button id="toggleSidebarBtn" class="icon-btn" title="Toggle Sidebar">☰</button>
+            <div class="logo">Material Preview <span>PRO</span></div>
+        </div>
+        <div class="stats"><span id="fps">FPS --</span></div>
+    </header>
+
+    <!-- Main Layout -->
+    <main id="app">
+
+        <!-- Sidebar Panel -->
+        <aside id="sidebar">
+            <div class="tab-header">
+                <button class="tab-btn active" data-tab="tab-model">📦 Model</button>
+                <button class="tab-btn" data-tab="tab-textures">🎨 Textures</button>
+                <button class="tab-btn" data-tab="tab-material">🎛️ Material</button>
+                <button class="tab-btn" data-tab="tab-lighting">☀️ Lighting and Environment</button>
+            </div>
+
+            <div class="tab-content">
+
+                <!-- 1. MODEL TAB -->
+                <div id="tab-model" class="tab-pane active">
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Custom 3D Model</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>Upload Model (.glb / .gltf / .fbx)
+                                <input type="file" id="modelUpload" accept=".glb,.gltf,.fbx">
+                            </label>
+                            <button id="clearModelBtn" type="button" class="btn-danger" style="margin-top: 8px;">Remove Custom Model</button>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible" id="recentModelsCard" style="display: none;">
+                        <div class="card-header">
+                            <div class="card-title">Recent 3D Models</div>
+                            <button id="clearHistoryBtn" type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; width: auto; margin-top: 0;">Clear All</button>
+                        </div>
+                        <div class="card-body">
+                            <div id="recentModelsList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Primitive Geometry</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>Shape
+                                <select id="geometry">
+                                    <option value="sphere">Sphere</option>
+                                    <option value="cube">Cube</option>
+                                    <option value="plane">Plane</option>
+                                    <option value="cylinder">Cylinder</option>
+                                    <option value="torusKnot">Torus Knot</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Model Position & Scale</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Position X</span><span id="posXVal" class="val-badge">0.0</span></div>
+                                <input type="range" id="posX" min="-5" max="5" step="0.1" value="0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Position Y</span><span id="posYVal" class="val-badge">0.0</span></div>
+                                <input type="range" id="posY" min="-5" max="5" step="0.1" value="0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Position Z</span><span id="posZVal" class="val-badge">0.0</span></div>
+                                <input type="range" id="posZ" min="-5" max="5" step="0.1" value="0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Scale Factor</span><span id="scaleVal" class="val-badge">1.0x</span></div>
+                                <input type="range" id="modelScale" min="0.2" max="3.0" step="0.1" value="1.0">
+                            </label>
+                            <label class="checkbox"><input type="checkbox" id="showGizmo" checked>Show 3D Drag Gizmo</label>
+                            <button id="resetTransformBtn" type="button" class="btn-secondary" style="margin-top: 8px;">Reset Position & Scale</button>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible" id="meshStatsCard">
+                        <div class="card-header">
+                            <div class="card-title">Mesh Info</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: monospace; font-size: 12px;">
+                                <div style="background: #12141a; padding: 8px; border-radius: 6px;">
+                                    <div style="color: var(--muted); font-size: 10px;">TRIANGLES</div>
+                                    <div id="polyCountVal" style="color: var(--accent); font-weight: bold; margin-top: 2px;">--</div>
+                                </div>
+                                <div style="background: #12141a; padding: 8px; border-radius: 6px;">
+                                    <div style="color: var(--muted); font-size: 10px;">VERTICES</div>
+                                    <div id="vertCountVal" style="color: var(--accent); font-weight: bold; margin-top: 2px;">--</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Viewport Display</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label class="checkbox"><input type="checkbox" id="wireframe">Wireframe Overlay</label>
+                            <label class="checkbox" id="wireframeOnlyLabel" style="margin-left: 20px; opacity: 0.5;">
+                                <input type="checkbox" id="wireframeOnly" disabled>Wireframe Only (Transparent)
+                            </label>
+                            <label class="checkbox"><input type="checkbox" id="autorotate" checked>Auto Rotate Camera</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. TEXTURES TAB -->
+                <div id="tab-textures" class="tab-pane">
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Preset Texture Maps</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <select id="texturePreset">
+                                <option value="none">-- Custom / None --</option>
+                                <option value="gold">🥇 Gold Brushed</option>
+                                <option value="silver">🥈 Silver Metallic Grid</option>
+                                <option value="brick">🧱 Red Brick</option>
+                                <option value="marble">🏛️ Marble Veins</option>
+                                <option value="tiles">⬜ Ceramic Tiles</option>
+                                <option value="wood">🪵 Wood Grain</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Custom PBR Maps</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <label style="margin-bottom: 0; flex: 1;">Base Color<input type="file" id="textureUpload" accept="image/*"></label>
+                                <label class="checkbox" style="margin-top: 18px; margin-left: 8px;"><input type="checkbox" id="toggleBaseMap" checked></label>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <label style="margin-bottom: 0; flex: 1;">Normal Map<input type="file" id="normalUpload" accept="image/*"></label>
+                                <label class="checkbox" style="margin-top: 18px; margin-left: 8px;"><input type="checkbox" id="toggleNormalMap" checked></label>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <label style="margin-bottom: 0; flex: 1;">Roughness Map<input type="file" id="roughnessMapUpload" accept="image/*"></label>
+                                <label class="checkbox" style="margin-top: 18px; margin-left: 8px;"><input type="checkbox" id="toggleRoughnessMap" checked></label>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <label style="margin-bottom: 0; flex: 1;">Metallic Map<input type="file" id="metallicMapUpload" accept="image/*"></label>
+                                <label class="checkbox" style="margin-top: 18px; margin-left: 8px;"><input type="checkbox" id="toggleMetallicMap" checked></label>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                <label style="margin-bottom: 0; flex: 1;">Emissive Map<input type="file" id="emissiveMapUpload" accept="image/*"></label>
+                                <label class="checkbox" style="margin-top: 18px; margin-left: 8px;"><input type="checkbox" id="toggleEmissiveMap" checked></label>
+                            </div>
+                            <button id="clearTexturesBtn" type="button" class="btn-danger" style="margin-top: 10px;">Clear All Maps</button>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">UV Scale & Rotation</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Texture Scale</span><span id="uvRepeatVal" class="val-badge">1.0x</span></div>
+                                <input type="range" id="uvRepeat" min="0.2" max="10" step="0.1" value="1.0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Texture Rotation</span><span id="uvRotateVal" class="val-badge">0°</span></div>
+                                <input type="range" id="uvRotate" min="0" max="360" step="1" value="0">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. MATERIAL TAB -->
+                <div id="tab-material" class="tab-pane">
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Base Tint & Standard PBR</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Base Tint Color</span></div>
+                                <div class="color-picker-row">
+                                    <input type="color" id="baseColorPicker" value="#ffffff">
+                                    <span id="baseColorHex" class="val-badge">#FFFFFF</span>
+                                </div>
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Metalness</span><span id="metalnessVal" class="val-badge">0.20</span></div>
+                                <input type="range" id="metalness" min="0" max="1" step="0.01" value="0.2">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Roughness</span><span id="roughnessVal" class="val-badge">0.50</span></div>
+                                <input type="range" id="roughness" min="0" max="1" step="0.01" value="0.5">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Normal Map Relief</span><span id="normalVal" class="val-badge">1.0</span></div>
+                                <input type="range" id="normalStrength" min="0" max="5" step="0.1" value="1">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Clearcoat (Varnish/Car Paint)</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Clearcoat Layer</span><span id="clearcoatVal" class="val-badge">0.00</span></div>
+                                <input type="range" id="clearcoat" min="0" max="1" step="0.01" value="0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Clearcoat Roughness</span><span id="clearcoatRoughVal" class="val-badge">0.00</span></div>
+                                <input type="range" id="clearcoatRoughness" min="0" max="1" step="0.01" value="0">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title" title="Simulates physical light refraction through glass or translucent volumes">Transmission & Refraction (Glass) ⓘ</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Transmission (Transparency)</span><span id="transVal" class="val-badge">0.00</span></div>
+                                <input type="range" id="transmission" min="0" max="1" step="0.01" value="0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Index of Refraction (IOR)</span><span id="iorVal" class="val-badge">1.50</span></div>
+                                <input type="range" id="ior" min="1.0" max="2.33" step="0.01" value="1.5">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Emissive Light & Glow</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Emissive Color</span></div>
+                                <div class="color-picker-row">
+                                    <input type="color" id="emissivePicker" value="#000000">
+                                    <span id="emissiveColorHex" class="val-badge">#000000</span>
+                                </div>
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Emissive Intensity</span><span id="emissiveIntensityVal" class="val-badge">0.0</span></div>
+                                <input type="range" id="emissiveIntensity" min="0" max="10" step="0.1" value="0">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. LIGHTING & FX TAB -->
+                <div id="tab-lighting" class="tab-pane">
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">HDRI Reflections & Lighting</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>Environment Preset
+                                <select id="hdriPreset">
+                                    <option value="venice">🌅 Venice Sunset</option>
+                                    <option value="royal">🏙️ Royal Esplanade</option>
+                                    <option value="overpass">🌉 Pedestrian Overpass</option>
+                                    <option value="none">🚫 None (Studio Lights Only)</option>
+                                </select>
+                            </label>
+                            <label class="checkbox"><input type="checkbox" id="showHdriBg" checked>Display HDRI Background</label>
+                            <label>
+                                <div class="label-row"><span>Background Blur</span><span id="hdriBlurVal" class="val-badge">0.10</span></div>
+                                <input type="range" id="hdriBlur" min="0" max="1" step="0.05" value="0.1">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>HDRI Rotation</span><span id="hdriRotationVal" class="val-badge">0°</span></div>
+                                <input type="range" id="hdriRotation" min="0" max="360" step="1" value="0">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Bloom FX (Cinematic Glow)</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label class="checkbox"><input type="checkbox" id="enableBloom" checked>Enable Bloom FX</label>
+                            <label>
+                                <div class="label-row"><span>Bloom Strength</span><span id="bloomStrengthVal" class="val-badge">0.5</span></div>
+                                <input type="range" id="bloomStrength" min="0" max="3" step="0.05" value="0.5">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Threshold Intensity</span><span id="bloomThresholdVal" class="val-badge">0.85</span></div>
+                                <input type="range" id="bloomThreshold" min="0" max="1" step="0.01" value="0.85">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Bloom Radius</span><span id="bloomRadiusVal" class="val-badge">0.40</span></div>
+                                <input type="range" id="bloomRadius" min="0" max="1" step="0.01" value="0.4">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card collapsible">
+                        <div class="card-header">
+                            <div class="card-title">Studio Environment & Rig</div>
+                            <span class="collapse-icon">▾</span>
+                        </div>
+                        <div class="card-body">
+                            <label>
+                                <div class="label-row"><span>Light Orbit Angle</span><span id="lightAngleVal" class="val-badge">45°</span></div>
+                                <input type="range" id="lightAngle" min="0" max="360" step="1" value="45">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Main Brightness</span><span id="mainLightVal" class="val-badge">2.0</span></div>
+                                <input type="range" id="mainLightIntensity" min="0" max="5" step="0.1" value="2.0">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Ambient Fill</span><span id="ambientLightVal" class="val-badge">1.2</span></div>
+                                <input type="range" id="ambientLightIntensity" min="0" max="3" step="0.1" value="1.2">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Color Warmth</span><span id="tempVal" class="val-badge">6500K</span></div>
+                                <input type="range" id="lightTemp" min="2000" max="10000" step="100" value="6500">
+                            </label>
+                            <label>
+                                <div class="label-row"><span>Camera Exposure</span><span id="exposureVal" class="val-badge">1.0</span></div>
+                                <input type="range" id="exposure" min="0.2" max="3.0" step="0.1" value="1.0">
+                            </label>
+                            <button id="resetLightingBtn" type="button" class="btn-secondary" style="margin-top: 10px;">Reset Studio Lights</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Viewport Area -->
+        <section id="viewportContainer">
+            <div id="viewer"></div>
+            
+            <!-- Loading Spinner Overlay -->
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                <div class="spinner"></div>
+                <div id="loadingText" class="loading-text">Loading 3D Asset...</div>
+            </div>
+
+            <!-- Drag & Drop Visual Target Banner -->
+            <div id="dropBanner" class="drop-banner">Drop 3D Model or Texture Here</div>
+
+            <div class="floating-tools">
+                <button id="resetCamera" type="button" class="btn-secondary" title="Shortcut: R">🎯 Reset View</button>
+                <button id="exportPNG" type="button">📸 Export PNG</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>
